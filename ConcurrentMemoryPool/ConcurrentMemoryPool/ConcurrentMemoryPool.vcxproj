@@ -20,13 +20,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="ThreadCache.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ConcurrentMemoryPool.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Common.h" />
     <ClInclude Include="MyObjectPool.h" />
     <ClInclude Include="ObjectPool.h" />
+    <ClInclude Include="ThreadCache.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
