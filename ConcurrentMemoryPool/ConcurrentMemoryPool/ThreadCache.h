@@ -13,6 +13,9 @@ public:
 	{
 
 	}
+
+	
 private:
-	FreeList* _Freelist[];
+	FreeList _Freelist[];
 };
+
