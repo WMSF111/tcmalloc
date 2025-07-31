@@ -43,12 +43,15 @@ private:
 class SizeClass
 {
 public:
-	static inline size_t _RoundSize(size_t size, size_t Alignsize)
+	// inline: 提示编译器将函数体直接插入到调用点，解决重复定义问题（所有.cpp 共享同一个实体）
+	// static: 让每个包含它的源文件都拿到一份独立的拷贝, 但会导致膨胀
+	// static inline: 每个翻译单元各一份，互不干扰, 同时解决了“可内联优化”和“允许头文件定义”两个问题。
+	static inline size_t _RoundSize(size_t size, size_t Alignsize) // 将size对齐为Aliansize大小
 	{
 		return (size + Alignsize - 1) & ~(Alignsize - 1);
 	}
 
-	static inline size_t RoundSize(size_t size)
+	static inline size_t RoundSize(size_t size) // 对size进行对齐，并返回对齐后大小
 	{
 		if (size <= 128) // [0,16)
 		{
@@ -77,12 +80,12 @@ public:
 		}
 	}
 
-	static inline size_t _IndexUp(size_t num, size_t byte)
+	static inline size_t _IndexUp(size_t num, size_t byte) // 返回num对应对齐（1<<btye)，大小对应的下标
 	{
 		return ((num + (1 << byte) - 1) >> byte) - 1;
 	}
 
-	static inline size_t IndexUp(size_t size)
+	static inline size_t IndexUp(size_t size) // 返回size对应的哈希桶下标
 	{
 		assert(size <= MAX_SIZE);
 		static size_t Freelist_size[4] = { 16, 56, 56, 56 };
