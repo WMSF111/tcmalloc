@@ -1,20 +1,32 @@
+#pragma once
+
 #include<iostream>
 #include<vector>
 #include<time.h>
 #include <cassert>
+#include <thread>
+#include <mutex>
 
 using std::cout;
 using std::endl;
 
-static size_t MAX_SIZE = 256 * 1024; //单位是byte
-static size_t CACHENUM = 208;
+static const size_t MAX_SIZE = 256 * 1024; //单位是byte
+static const size_t CACHENUM = 208; // 哈希桶数量
 
-void*& NextObj(void* obj) // 获取obj的下一个指针
+#ifdef _WIN64
+	typedef unsigned long long ID_SIZE;
+#elif _WIN32
+	typedef unsigned size_t ID_SIZE;
+#endif
+
+//void*& NextObj(void* obj) // 获取obj的下一个指针
+// 内部链接属性（internal linkage）:表示这个函数仅在当前翻译单元（当前.cpp 文件）可见。
+static void*& NextObj(void* obj) // 获取obj的下一个指针,*&使调用者可以直接改写这个指针，而不是得到一份拷贝。
 {
 	return *(void**)obj; // 将obj强制转换为void**类型，并返回其指向的下一个对象的指针
 }
 
-class FreeList
+class FreeList // 自由链表类，用于管理内存池中的空闲对象
 {
 public:
 	void Push(void* obj) //头插
@@ -37,15 +49,15 @@ public:
 	}
 
 private:
-	void* _freelist;// 空闲链表的头指针
+	void* _freelist = nullptr;// 空闲链表的头指针
 };
 
-class SizeClass
+class SizeClass  // 大小类，用于处理内存对齐和哈希桶下标计算
 {
 public:
 	// inline: 提示编译器将函数体直接插入到调用点，解决重复定义问题（所有.cpp 共享同一个实体）
 	// static: 让每个包含它的源文件都拿到一份独立的拷贝, 但会导致膨胀
-	// static inline: 每个翻译单元各一份，互不干扰, 同时解决了“可内联优化”和“允许头文件定义”两个问题。
+	// static inline: 每个翻译单元各一份，互不干扰, 同时可以进行“内联优化”和“允许头文件定义”。
 	static inline size_t _RoundSize(size_t size, size_t Alignsize) // 将size对齐为Aliansize大小
 	{
 		return (size + Alignsize - 1) & ~(Alignsize - 1);
@@ -115,4 +127,57 @@ public:
 			return -1;
 		}
 	}
+};
+
+// 管理多个连续页大块内存跨度结构
+struct SpanNode // 跨度节点
+{
+	ID_SIZE _pageId = 0; // 跨度起始页号
+	size_t _n = 0; // 跨度包含的页数
+
+	SpanNode* _next = nullptr; // 指向下一个跨度的指针
+	SpanNode* _prev = nullptr; // 指向上一个跨度的指针
+
+	size_t n_count = 0; // 分配给threadcahe的对象数量
+	void* freeList = nullptr; // 跨度内存块的空闲链表
+};
+
+// 带头双向循环链表
+class SpanList // 跨度链表
+{
+public:
+	SpanList()
+	{
+		_head = new SpanNode;
+		_head->_next = _head;
+		_head->_prev = _head;
+	}
+	
+	void Insert(SpanNode* pos, SpanNode* newspan) // 在pos位置前插入newspan节点
+	{
+		assert(pos && newspan);
+
+		SpanNode* prev = pos->_prev;
+		prev->_next = newspan;
+		newspan->_prev = prev;
+		newspan->_next = pos;
+		pos->_prev = newspan;
+	}
+
+	void Erase(SpanNode* span) // 删除span节点
+	{
+		assert(span);
+
+		SpanNode* prev = span->_prev;
+		SpanNode* next = span->_next;
+
+		prev->_next = next;
+		next->_prev = prev;
+		// delete span; 不需要释放span节点
+	}
+
+private:
+	SpanNode* _head = nullptr;
+public:
+	std::mutex _mutex; // 跨度链表的互斥锁
 };
