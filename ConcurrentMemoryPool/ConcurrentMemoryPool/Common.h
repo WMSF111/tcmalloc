@@ -1,15 +1,19 @@
+#pragma once
+
 #include<iostream>
 #include<vector>
 #include<time.h>
 #include <cassert>
+#include <thread>
 
 using std::cout;
 using std::endl;
 
-static size_t MAX_SIZE = 256 * 1024; //单位是byte
-static size_t CACHENUM = 208;
+static const size_t MAX_SIZE = 256 * 1024; //单位是byte
+static const size_t CACHENUM = 208;
 
-void*& NextObj(void* obj) // 获取obj的下一个指针
+//void*& NextObj(void* obj) // 获取obj的下一个指针
+static void*& NextObj(void* obj) // 获取obj的下一个指针
 {
 	return *(void**)obj; // 将obj强制转换为void**类型，并返回其指向的下一个对象的指针
 }
@@ -37,7 +41,7 @@ public:
 	}
 
 private:
-	void* _freelist;// 空闲链表的头指针
+	void* _freelist = nullptr;// 空闲链表的头指针
 };
 
 class SizeClass
