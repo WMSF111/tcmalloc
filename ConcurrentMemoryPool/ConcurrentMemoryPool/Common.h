@@ -5,16 +5,12 @@
 #include<time.h>
 #include <cassert>
 #include <thread>
-<<<<<<< HEAD
 #include <mutex>
-=======
->>>>>>> 806d0c0b8398d55c87e438c4262547c725d81bc0
 
 using std::cout;
 using std::endl;
 
 static const size_t MAX_SIZE = 256 * 1024; //单位是byte
-<<<<<<< HEAD
 static const size_t CACHENUM = 208; // 哈希桶数量
 
 #ifdef _WIN64
@@ -24,14 +20,9 @@ static const size_t CACHENUM = 208; // 哈希桶数量
 #endif
 
 //void*& NextObj(void* obj) // 获取obj的下一个指针
-// 内部链接属性（internal linkage）:表示这个函数仅在当前翻译单元（当前.cpp 文件）可见。
-static void*& NextObj(void* obj) // 获取obj的下一个指针,*&使调用者可以直接改写这个指针，而不是得到一份拷贝。
-=======
-static const size_t CACHENUM = 208;
-
+// 获取obj的下一个指针,*&使调用者可以直接改写这个指针，而不是得到一份拷贝。
 //void*& NextObj(void* obj) // 获取obj的下一个指针
 static void*& NextObj(void* obj) // 获取obj的下一个指针
->>>>>>> 806d0c0b8398d55c87e438c4262547c725d81bc0
 {
 	return *(void**)obj; // 将obj强制转换为void**类型，并返回其指向的下一个对象的指针
 }
@@ -62,6 +53,7 @@ private:
 	void* _freelist = nullptr;// 空闲链表的头指针
 };
 
+// 内部链接属性（internal linkage）:表示这个函数仅在当前翻译单元（当前.cpp 文件）可见。
 class SizeClass  // 大小类，用于处理内存对齐和哈希桶下标计算
 {
 public:
