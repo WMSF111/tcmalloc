@@ -1,16 +1,16 @@
 #pragma once
-
 #include<iostream>
 #include<vector>
 #include<time.h>
 #include <cassert>
 #include <thread>
 #include <mutex>
+#include <algorithm>
 
 using std::cout;
 using std::endl;
 
-static const size_t MAX_SIZE = 256 * 1024; //单位是byte
+static const size_t MAX_SIZE = 256 * 1024; //单位是byte, 最大的哈希桶下标
 static const size_t CACHENUM = 208; // 哈希桶数量
 
 #ifdef _WIN64
@@ -49,8 +49,21 @@ public:
 		return _freelist == nullptr;
 	}
 
+	size_t MaxSize() // 返回最大可分配的对象大小
+	{
+		return sizeof(void*) * 2; // 返回指针大小的两倍，作为最大可分配对象大小
+	}
+
+	void PushRange(void* start, void* end)
+	{
+		assert(start && end);
+		NextObj(end) = _freelist; // 将end的下一个指针指向当前空闲链表的头指针
+		_freelist = start; // 将空闲链表的头指针指向start
+	}
+
 private:
 	void* _freelist = nullptr;// 空闲链表的头指针
+	size_t _maxSize = 1; // 最大可分配的对象大小，默认为1个指针大小
 };
 
 // 内部链接属性（internal linkage）:表示这个函数仅在当前翻译单元（当前.cpp 文件）可见。
@@ -128,6 +141,16 @@ public:
 			assert(false);
 			return -1;
 		}
+	}
+	inline static size_t NumMoveSize(size_t size) // 返回size对应的批量数量
+	{
+		assert(size <= MAX_SIZE);
+		size_t retnum = MAX_SIZE / size;
+		if (retnum < 2)
+			retnum = 2;
+		if (retnum > 512)
+			retnum = 512; // 限制批量数量在2到512之间
+		return retnum;
 	}
 };
 

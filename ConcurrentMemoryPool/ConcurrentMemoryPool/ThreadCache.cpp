@@ -1,9 +1,26 @@
 #pragma once
 #include "ThreadCache.h"
+#include "CentralCache.h"
 
-void* ThreadCache::FetchFromCentralCache(size_t index, size_t alignSize) // 从CentralCache中获取alignSize大小的内存块，并存入哈希桶index下标链表中
+void* ThreadCache::FetchFromCentralCache(size_t index, size_t size) // 从CentralCache中获取alignSize大小的内存块，并存入哈希桶index下标链表中
 {
-	return nullptr;
+	//使用慢开始反馈调节
+	// 1、最开始不会一次向central cache一次批量要太多，因为要太多了可能用不完
+	// 2、如果你不要这个size大小内存需求，那么batchNum就会不断增长，直到上限
+	// 3、size越大，一次向central cache要的batchNum就越小
+	// 4、size越小，一次向central cache要的batchNum就越大
+	size_t batchNum = std::min(_FreeList[index].MaxSize(), SizeClass::NumMoveSize(size));
+	if (batchNum != _FreeList[index].MaxSize())
+		batchNum += 1; // 如果不是最大值，batchNum加1，避免每次都只要一个对象
+	void* start = nullptr;
+	void* end = nullptr;
+	size_t FetchNum = CentralCache::GetInstance()->FetchRangeObj(start, end, batchNum, size); // 从CentralCache获取batchNum个size大小的对象
+	assert(FetchNum >= 1);
+	if (FetchNum == 1)// 如果只获取了一个对象
+		assert(start == end);
+	else
+		_FreeList[index].PushRange(NextObj(start), end); // 将获取的对象范围[start, end]插入到哈希桶index下标链表中
+	return start;
 }
 
 void* ThreadCache::Allocate(size_t size) // 获取size大小的内存块

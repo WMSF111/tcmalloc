@@ -28,7 +28,7 @@
     <ResourceCompile Include="ConcurrentMemoryPool.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CentralCahce.h" />
+    <ClInclude Include="CentralCache.h" />
     <ClInclude Include="Common.h" />
     <ClInclude Include="MyObjectPool.h" />
     <ClInclude Include="ThreadCache.h" />

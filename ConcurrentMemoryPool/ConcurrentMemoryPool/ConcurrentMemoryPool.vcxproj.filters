@@ -24,6 +24,9 @@
     <ClCompile Include="ConcurrentAlloc.h">
       <Filter>头文件</Filter>
     </ClCompile>
+    <ClCompile Include="CentralCache.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ConcurrentMemoryPool.rc">
@@ -38,6 +41,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ThreadCache.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CentralCache.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
