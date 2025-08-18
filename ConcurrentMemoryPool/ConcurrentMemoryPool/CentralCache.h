@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "PageCache.h"
 
 // 单例模式（饿汉模式）实现中央缓存类，用于管理不同大小的内存块
 class CentralCache

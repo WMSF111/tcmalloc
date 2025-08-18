@@ -12,20 +12,20 @@ using std::endl;
 
 int MEMORYNUM = 128 * 1024; // 内存池大小
 // 直接去堆上按页申请空间
-inline static void* SystemAlloc(size_t kpage)
-{
-#ifdef _WIN32 // 一页大小固定为 8 KiB（8192字节）
-	// kpage << 13 等价于 kpage * 8192
-	void* ptr = VirtualAlloc(0, kpage << 13, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-#else
-	// linux下brk mmap等
-#endif
-
-	if (ptr == nullptr)
-		throw std::bad_alloc();
-
-	return ptr;
-}
+//inline static void* SystemAlloc(size_t kpage)
+//{
+//#ifdef _WIN32 // 一页大小固定为 8 KiB（8192字节）
+//	// kpage << 13 等价于 kpage * 8192
+//	void* ptr = VirtualAlloc(0, kpage << 13, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+//#else
+//	// linux下brk mmap等
+//#endif
+//
+//	if (ptr == nullptr)
+//		throw std::bad_alloc();
+//
+//	return ptr;
+//}
 
 template<class T>
 class ObjectPool
@@ -51,7 +51,7 @@ public:
 				//_memory = (T)malloc(MEMORYNUM); // 错误写法
 				//_memory = (char*)malloc(MEMORYNUM); // 调用malloc
 				cout << (_remainmem >> 13); // MEMORYNUM 需要开辟多少页
-				_memory = (char*)SystemAlloc(_remainmem >> 13); // 创建1块内存池需要_remainmem >> 13页
+				_memory = (char*)(SystemAlloc(_remainmem >> 13)); // 创建1块内存池需要_remainmem >> 13页
 				if (_memory == nullptr)
 				{
 					throw std::bad_alloc();

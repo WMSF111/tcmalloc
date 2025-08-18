@@ -5,7 +5,48 @@ CentralCache CentralCache::_instance; // 静态成员变量定义，初始化单例实例
 // 获取一个非空的span
 SpanNode* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 {
-	return nullptr;
+	// 获取freeList不为空的span
+	SpanNode* it = list.Begin(); // 获取哈希桶的头节点
+	while (it != list.End())
+	{
+		if (it->freeList != nullptr)
+			return it;
+		else
+			it = it->_next;
+	}
+	list._mutex.unlock(); // 解锁对应的哈希桶
+
+	// 如果没有找到非空的span，则创建一个新的span
+	PageCache::GetInstance()->_pageMtx.lock(); // 锁定PageCache的互斥锁
+	//SpanNode* Span = PageCache::GetInstance()->newSpan(byte_size); // 创建新的span
+	SpanNode* Span = PageCache::GetInstance()->newSpan(SizeClass::NumMovePage(byte_size)); // 创建新的span
+	PageCache::GetInstance()->_pageMtx.unlock(); // 解锁PageCache的互斥锁
+
+
+	// 对获取span进行切分，不需要加锁，因为这会其他线程访问不到这个span
+	// 计算span的大块内存的起始地址和大块内存的大小，方便后续切分
+	char* start = (char*)(Span->_pageId << PAGE_SHIFT); // 起始地址
+	size_t size = Span->_n << PAGE_SHIFT; // 大块内存的大小
+	char* end = start + size; // 结束地址
+
+	// 把大块内存切成自由链表，通过尾插链接起来（地址连续）
+	Span->freeList = start; // 设置span的空闲链表头指针为起start址
+	start += byte_size; // 更新start为下一个对象的地址
+	void* tail = Span->freeList; // tail指针，指向链表的起始地址
+	int i =	1;
+	while (start < end) // 当起始地址小于结束地址时，继续切分
+	{
+		i++;
+		NextObj(tail) = start; // 将当前尾指针的下一个对象指针指向起始地址
+		tail = NextObj(tail); // 更新尾指针为下一个对象指针
+		start += byte_size; // 更新起始地址为下一个对象的地址
+	}
+
+	// 切好span以后，需要把span挂到桶里面去的时候，再加锁
+	list._mutex.lock(); // 锁定对应的哈希桶
+	list.PushFront(Span); // 将新的span插入到哈希桶的头部
+
+	return Span;
 }
 
 // 从中心缓存获取一定数量的对象给thread cache
@@ -23,7 +64,7 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	end = start;
 	size_t retNum = 0; // 计数器，记录获取的对象数量
 	size_t i = 0;
-	while(i < batchNum - 1 && NextObj(end) != nullptr)
+	while(i <= batchNum - 1 && NextObj(end) != nullptr)
 	{
 		end = NextObj(end); // 获取下一个对象
 		i++;

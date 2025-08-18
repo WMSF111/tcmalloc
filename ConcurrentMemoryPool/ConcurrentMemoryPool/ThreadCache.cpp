@@ -9,13 +9,14 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size) // 从Central
 	// 2、如果你不要这个size大小内存需求，那么batchNum就会不断增长，直到上限
 	// 3、size越大，一次向central cache要的batchNum就越小
 	// 4、size越小，一次向central cache要的batchNum就越大
-	size_t batchNum = std::min(_FreeList[index].MaxSize(), SizeClass::NumMoveSize(size));
-	if (batchNum != _FreeList[index].MaxSize())
-		batchNum += 1; // 如果不是最大值，batchNum加1，避免每次都只要一个对象
+	size_t batchNum = min(_FreeList[index].MaxSize(), SizeClass::NumMoveSize(size)); //Windows.h 与algrithm.h中都有min函数
+	if (batchNum == _FreeList[index].MaxSize())
+		_FreeList[index].MaxSize() += 1;
+		//batchNum += 1; // batchNum加1，避免每次都只要一个对象
 	void* start = nullptr;
 	void* end = nullptr;
 	size_t FetchNum = CentralCache::GetInstance()->FetchRangeObj(start, end, batchNum, size); // 从CentralCache获取batchNum个size大小的对象
-	assert(FetchNum >= 1);
+	assert(FetchNum > 0);
 	if (FetchNum == 1)// 如果只获取了一个对象
 		assert(start == end);
 	else

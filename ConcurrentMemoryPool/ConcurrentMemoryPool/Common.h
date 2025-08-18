@@ -7,17 +7,41 @@
 #include <mutex>
 #include <algorithm>
 
+
+#ifdef _WIN32
+	#include <windows.h>
+#else
+  //...
+#endif
+
 using std::cout;
 using std::endl;
 
-static const size_t MAX_SIZE = 256 * 1024; //单位是byte, 最大的哈希桶下标
+static const size_t MAX_SIZE = 256 * 1024; //单位是byte, 最大的哈希桶下标  == 256kib
 static const size_t CACHENUM = 208; // 哈希桶数量
+static const size_t MAX_PAGE = 129; // 哈希桶数量
+static const size_t PAGE_SHIFT = 13;
 
 #ifdef _WIN64
 	typedef unsigned long long ID_SIZE;
 #elif _WIN32
 	typedef unsigned size_t ID_SIZE;
 #endif
+
+// 直接去堆上按页申请空间
+inline static void* SystemAlloc(size_t kpage)
+{
+#ifdef _WIN32
+		void* ptr = VirtualAlloc(0, kpage << 13, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+#else
+		// linux下brk mmap等
+#endif
+
+		if (ptr == nullptr)
+			throw std::bad_alloc();
+
+		return ptr;
+}
 
 //void*& NextObj(void* obj) // 获取obj的下一个指针
 // 获取obj的下一个指针,*&使调用者可以直接改写这个指针，而不是得到一份拷贝。
@@ -49,9 +73,9 @@ public:
 		return _freelist == nullptr;
 	}
 
-	size_t MaxSize() // 返回最大可分配的对象大小
+	size_t& MaxSize() // 返回最大可分配的对象大小
 	{
-		return sizeof(void*) * 2; // 返回指针大小的两倍，作为最大可分配对象大小
+		return _maxSize; // 返回指针大小的两倍，作为最大可分配对象大小
 	}
 
 	void PushRange(void* start, void* end)
@@ -142,7 +166,8 @@ public:
 			return -1;
 		}
 	}
-	inline static size_t NumMoveSize(size_t size) // 返回size对应的批量数量
+	
+	static size_t NumMoveSize(size_t size) // 返回size对应的批量数量
 	{
 		assert(size <= MAX_SIZE);
 		size_t retnum = MAX_SIZE / size;
@@ -152,12 +177,29 @@ public:
 			retnum = 512; // 限制批量数量在2到512之间
 		return retnum;
 	}
+
+	// 计算一次向系统获取几个页
+	// 单个对象 8byte
+	// ...
+	// 单个对象 256KB
+	static size_t NumMovePage(size_t size)
+	{
+		size_t num = NumMoveSize(size);
+		size_t npage = num * size;
+
+		npage >>= PAGE_SHIFT; // 将字节数转换为页数
+		if (npage == 0)
+			npage = 1;
+
+		return npage;
+	}
 };
 
 // 管理多个连续页大块内存跨度结构
 struct SpanNode // 跨度节点
 {
-	ID_SIZE _pageId = 0; // 跨度起始页号
+	// 把“指针”降维成“压缩整型索引”,方便计算索引+n
+	ID_SIZE _pageId = 0; // 跨度起始页号 
 	size_t _n = 0; // 跨度包含的页数
 
 	SpanNode* _next = nullptr; // 指向下一个跨度的指针
@@ -176,6 +218,33 @@ public:
 		_head = new SpanNode;
 		_head->_next = _head;
 		_head->_prev = _head;
+	}
+
+	SpanNode* Begin() const // 返回跨度链表的头节点
+	{
+		return _head->_next; // 返回头节点的下一个节点
+	}
+
+	SpanNode* End() const // 返回跨度链表的尾节点
+	{
+		return _head; // 返回头节点本身作为尾节点
+	}
+
+	bool Empty() const // 判断跨度链表是否为空
+	{
+		return _head->_next == _head; // 如果头节点的下一个节点是头节点本身，则链表为空
+	}
+
+	SpanNode* PopFront()
+	{
+		SpanNode* span = _head->_next; // 获取头节点的下一个节点
+		Erase(span); // 删除该节点
+		return span;
+	}
+
+	void PushFront(SpanNode* Span)
+	{
+		Insert(Begin(), Span); // 在头节点前插入新的跨度节点
 	}
 	
 	void Insert(SpanNode* pos, SpanNode* newspan) // 在pos位置前插入newspan节点
