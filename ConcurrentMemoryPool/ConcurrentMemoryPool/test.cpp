@@ -19,6 +19,7 @@ void Alloc2()
 
 void TLSTest()
 {
+	// thread-local 变量在每个线程都有独立存储空间
 	std::thread t1(Alloc1);
 	t1.join();
 
@@ -43,8 +44,8 @@ void TestConcurrentAlloc1()
 
 int main()
 {
-	//TestObjectPool();
-	TestConcurrentAlloc1();
+	TLSTest();
+	//TestConcurrentAlloc1();
 
 	return 0;
 }

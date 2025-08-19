@@ -37,7 +37,6 @@ void* ThreadCache::Allocate(size_t size) // 获取size大小的内存块
 	{
 		return FetchFromCentralCache(index, alignSize); // 向CentralCache借alignSize大小内存存入index下标哈希桶内
 	}
-
 }
 
 void ThreadCache::Deallocate(void* ptr, size_t size) // 释放ptr指针指向的size大小的对象

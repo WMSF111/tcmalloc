@@ -1,3 +1,8 @@
+/*处理ThreadCache对象的头文件
+ * 该头文件定义了ThreadCache类，包含了内存分配和释放的相关方法
+ * 以及线程局部存储的ThreadCache实例pTLSThreadCache
+*/
+
 #pragma once  
 #include "common.h"  
 
@@ -6,7 +11,7 @@ class ThreadCache
 public:
 	void* Allocate(size_t size); // 获取size大小的内存块
 	void Deallocate(void* ptr, size_t size); // 删除ptr指针指向的size大小的对象
-	void* FetchFromCentralCache(size_t index, size_t size);
+	void* FetchFromCentralCache(size_t index, size_t size); // 从CentralCache中获取alignSize大小的内存块，并存入哈希桶index下标链表中
 	
 private:
 	// FreeList _FreeList[]; 

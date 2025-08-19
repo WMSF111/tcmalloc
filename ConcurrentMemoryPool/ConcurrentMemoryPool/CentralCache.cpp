@@ -44,7 +44,7 @@ SpanNode* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 
 	// 切好span以后，需要把span挂到桶里面去的时候，再加锁
 	list._mutex.lock(); // 锁定对应的哈希桶
-	list.PushFront(Span); // 将新的span插入到哈希桶的头部
+	list.PushFront(Span); // 表示获取到了span将其插入Spanlist链表
 
 	return Span;
 }
@@ -56,22 +56,22 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	size_t index = SizeClass::IndexUp(size); // 获取哈希桶下标
 	_SpanList[index]._mutex.lock(); // 锁定对应的哈希桶
 	// 获取一个非空的span
-	SpanNode* span = GetOneSpan(_SpanList[index], size); // 获取非空的span
+	SpanNode* span = GetOneSpan(_SpanList[index], size); // 获取_SpanList[index]中非空的span
 	assert(span && span->freeList); // 确保span不为空且有空闲链表
-	// 从span中获取batchNum个对象
+	// 从span中的freeList链表中获取batchNum个对象
 	// 如果不够batchNum个，有多少拿多少
 	start = span->freeList;
 	end = start;
-	size_t retNum = 0; // 计数器，记录获取的对象数量
+	size_t retNum = 1; // 计数器，记录获取的对象数量
 	size_t i = 0;
-	while(i <= batchNum - 1 && NextObj(end) != nullptr)
+	while(i < batchNum - 1 && NextObj(end) != nullptr)
 	{
 		end = NextObj(end); // 获取下一个对象
 		i++;
 		retNum++;
-	}
+	}//此时end指向未被获取的下一个对象
 	span->freeList = NextObj(end); // 更新span的空闲链表头指针为end的下一个对象指针
-	NextObj(end) = nullptr; // 将end的下一个对象指针置空
+	NextObj(end) = nullptr; // 将获取到的对象的下一个对象指针置空
 	_SpanList[index]._mutex.unlock(); // 解锁对应的哈希桶
 	return retNum; // 返回获取的对象数量
 }

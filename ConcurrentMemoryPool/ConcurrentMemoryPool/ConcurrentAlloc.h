@@ -1,9 +1,12 @@
+/*   线程级入口分配器：用于实现ThreadCache的获取与释放
+注：pTLSThreadCache只在该函数调用，避免与ThreadCache中调用冲突    */
+
 #pragma once
 
 #include "common.h"
 #include "ThreadCache.h"
 
-static void* ConcurrentAlloc(size_t size)
+static void* ConcurrentAlloc(size_t size)// 获取size大小的pTLSThreadCache对象
 {
 	if (pTLSThreadCache == nullptr)
 	{
