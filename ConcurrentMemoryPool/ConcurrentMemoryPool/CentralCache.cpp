@@ -20,6 +20,7 @@ SpanNode* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 	PageCache::GetInstance()->_pageMtx.lock(); // 锁定PageCache的互斥锁
 	//SpanNode* Span = PageCache::GetInstance()->newSpan(byte_size); // 创建新的span
 	SpanNode* Span = PageCache::GetInstance()->newSpan(SizeClass::NumMovePage(byte_size)); // 创建新的span
+	Span->_isUse = true;
 	PageCache::GetInstance()->_pageMtx.unlock(); // 解锁PageCache的互斥锁
 
 
@@ -74,4 +75,39 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	NextObj(end) = nullptr; // 将获取到的对象的下一个对象指针置空
 	_SpanList[index]._mutex.unlock(); // 解锁对应的哈希桶
 	return retNum; // 返回获取的对象数量
+}
+
+void CentralCache::ReleaseListToSpans(void* start, size_t byte_size) // 将start指向的对象链表释放到CentralCache的span中
+{
+	//由于List中对象地址不连续，不知道start应该属于哪个span，应使用map进行映射
+	assert(start);
+	size_t index = SizeClass::IndexUp(byte_size); // 获取哈希桶下标
+	_SpanList[index]._mutex.lock(); // 锁定对应的哈希桶
+	while (start)
+	{
+		void* next = NextObj(start);
+
+		SpanNode* Span = PageCache::GetInstance()->MapObjectToSpan(start); // 获取start指向的对象所在的span
+		NextObj(start) = Span->freeList;
+		Span->freeList = start; //头插start入Span的freeList
+		Span->n_count--; // 分配给threadcache的对象数量减1
+		if (Span->n_count == 0) // 如果span中的对象数量为0
+		{
+			// 将span从哈希桶中删除
+			_SpanList[index].Erase(Span); // 从哈希桶中删除
+			Span->freeList = nullptr;
+			Span->_next = nullptr;
+			Span->_prev = nullptr;
+			// 释放span给page cache时，使用page cache的锁就可以了
+			// 这时把桶锁解掉
+			_SpanList[index]._mutex.unlock(); // 解锁对应的哈希桶
+
+			PageCache::GetInstance()->_pageMtx.lock();
+			PageCache::GetInstance()->ReleaseSpanToPageCache(Span); //释放Span给PageCache
+			PageCache::GetInstance()->_pageMtx.unlock();
+			_SpanList[index]._mutex.lock(); // 重新锁定对应的哈希桶
+		}
+		start = next; // 继续处理下一个对象
+	}
+	_SpanList[index]._mutex.unlock(); // 解锁对应的哈希桶
 }

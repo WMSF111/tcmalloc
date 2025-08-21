@@ -12,7 +12,8 @@ public:
 	void* Allocate(size_t size); // 获取size大小的内存块
 	void Deallocate(void* ptr, size_t size); // 删除ptr指针指向的size大小的对象
 	void* FetchFromCentralCache(size_t index, size_t size); // 从CentralCache中获取alignSize大小的内存块，并存入哈希桶index下标链表中
-	
+	// 释放对象时，链表过长时，回收内存回到中心缓存
+	void ListTooLong(FreeList& list, size_t size);
 private:
 	// FreeList _FreeList[]; 
 	FreeList _FreeList[CACHENUM]; // 存储哈希桶

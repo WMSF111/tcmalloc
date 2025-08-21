@@ -2,7 +2,6 @@
 
 PageCache PageCache::_sinst; // 静态成员变量初始化
 
-
 SpanNode* PageCache::newSpan(size_t k) // 获取新的跨度节点，k为跨度大小
 {
 	assert(k > 0 && k <= MAX_PAGE); // 确保k在合法范围内
@@ -25,6 +24,14 @@ SpanNode* PageCache::newSpan(size_t k) // 获取新的跨度节点，k为跨度大小
 			nSpan->_pageId += k; // 更新nSpan的起始页号
 			nSpan->_n -= k; // 更新nSpan的页数
 			_spanlist[nSpan->_n].PushFront(nSpan);
+
+			// 存储pageCache中的nSpan 首位ID与Span映射方便PageCache合并
+			_idSpanMap[(ID_SIZE)nSpan->_pageId] = nSpan; // 将新的跨度节点的起始页号映射到nSpan
+			_idSpanMap[(ID_SIZE)nSpan->_pageId + nSpan->_n - 1] = nSpan; // 将新的跨度节点的结尾页号映射到nSpan
+
+			for(ID_SIZE i = 0; i < kSpan->_n; i++)
+				_idSpanMap[(ID_SIZE)kSpan->_pageId + i] = kSpan;
+
 			return kSpan; // 返回新的跨度节点
 		}
 	}
@@ -36,4 +43,86 @@ SpanNode* PageCache::newSpan(size_t k) // 获取新的跨度节点，k为跨度大小
 	_spanlist[bigkSpan->_n - 1].PushFront(bigkSpan); // 将新的跨度节点插入到对应的跨度链表中
 
 	return newSpan(k); // 递归调用获取k页的跨度节点
+}
+
+// 获取从对象到span的映射
+SpanNode* PageCache::MapObjectToSpan(void* obj)
+{
+	ID_SIZE pageId = (ID_SIZE)obj >> PAGE_SHIFT; // 将对象地址转换为页号
+	auto it = _idSpanMap.find(pageId); // 在映射表中查找对应的span节点
+	if (it != _idSpanMap.end()) // 找到了span节点
+		return it->second; // 返回对应的span节点
+	else
+	{
+		assert(false);
+		return nullptr;
+	}
+}
+
+// 释放空闲span回到Pagecache，并合并相邻的span
+void PageCache::ReleaseSpanToPageCache(SpanNode* span)
+{
+	// 对span前后的页，尝试进行合并，缓解内存碎片问题
+	while (1)
+	{
+		ID_SIZE prevId = span->_pageId - 1;
+		auto ret = _idSpanMap.find(prevId);
+		// 前面的页号没有，不合并了
+		if (ret == _idSpanMap.end())
+		{
+			break;
+		}
+
+		// 前面相邻页的span在使用，不合并了
+		SpanNode* prevSpan = ret->second;
+		if (prevSpan->_isUse == true)
+		{
+			break;
+		}
+
+		// 合并出超过128页的span没办法管理，不合并了
+		if (prevSpan->_n + span->_n > MAX_PAGE - 1)
+		{
+			break;
+		}
+
+		span->_pageId = prevSpan->_pageId;
+		span->_n += prevSpan->_n;
+
+		_spanlist[prevSpan->_n].Erase(prevSpan);
+		delete prevSpan;
+	}
+
+	// 向后合并
+	while (1)
+	{
+		ID_SIZE nextId = span->_pageId + span->_n;
+		auto ret = _idSpanMap.find(nextId);
+		if (ret == _idSpanMap.end())
+		{
+			break;
+		}
+
+		SpanNode* nextSpan = ret->second;
+		if (nextSpan->_isUse == true)
+		{
+			break;
+		}
+
+		if (nextSpan->_n + span->_n > MAX_PAGE - 1)
+		{
+			break;
+		}
+
+		span->_n += nextSpan->_n;
+
+		_spanlist[nextSpan->_n].Erase(nextSpan);
+		delete nextSpan;
+	}
+	//前后合并后
+	_spanlist[span->_n].PushFront(span); // 将合并后的span插入到对应的跨度链表中
+	span->_isUse = false;
+	_idSpanMap[span->_pageId] = span; // 更新映射表，将span的起始页号映射到span
+	_idSpanMap[span->_pageId + span->_n - 1] = span; // 将span的结尾页号映射到span
+
 }

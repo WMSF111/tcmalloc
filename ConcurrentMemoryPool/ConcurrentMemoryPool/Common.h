@@ -6,6 +6,7 @@
 #include <thread>
 #include <mutex>
 #include <algorithm>
+#include <unordered_map>
 
 
 #ifdef _WIN32
@@ -59,6 +60,7 @@ public:
 		assert(obj); // 确保obj不为空
 		NextObj(obj) = _freelist; // 将obj的下一个指针指向当前空闲链表的头指针
 		_freelist = obj; // 将空闲链表的头指针指向obj
+		_Size++;
 	}
 
 	void* Pop() //头删
@@ -66,6 +68,7 @@ public:
 		assert(_freelist); // 确保空闲链表不为空	
 		void* obj = _freelist; // 记录当前空闲链表的头指针
 		_freelist = NextObj(obj); // 将空闲链表的头指针指向下一个对象
+		_Size--;
 		return obj;
 	}
 	bool Empty()
@@ -78,16 +81,36 @@ public:
 		return _maxSize; // 返回指针大小的两倍，作为最大可分配对象大小
 	}
 
-	void PushRange(void* start, void* end)
+	void PushRange(void* start, void* end, size_t size)
 	{
 		assert(start && end);
 		NextObj(end) = _freelist; // 将end的下一个指针指向当前空闲链表的头指针
 		_freelist = start; // 将空闲链表的头指针指向start
+		_Size += size;
 	}
 
+	void PopRange(void*& start, void*& end, size_t size) // 从空闲链表中弹出一段范围
+	{
+		assert(_freelist && _Size >= size);
+		start = _freelist; // 记录当前空闲链表的头指针
+		end = start; // 初始化end为start
+		for (size_t i = 0; i < size - 1; ++i) // 循环size-1次，获取size个对象
+		{
+			end = NextObj(end); // 获取下一个对象
+		}
+		_freelist = NextObj(end); // 更新空闲链表的头指针为end的下一个对象
+		NextObj(end) = nullptr; // 将end的下一个指针置空
+		_Size -= size;
+	}
+
+	size_t Size()
+	{
+		return _Size;
+	}
 private:
 	void* _freelist = nullptr;// 空闲链表的头指针
 	size_t _maxSize = 1; // 最大可分配的对象大小，默认为1个指针大小
+	size_t _Size = 0; // 当前空闲链表的对象数量
 };
 
 // 内部链接属性（internal linkage）:表示这个函数仅在当前翻译单元（当前.cpp 文件）可见。
@@ -207,6 +230,7 @@ struct SpanNode // 跨度节点
 
 	size_t n_count = 0; // 分配给threadcahe的对象数量
 	void* freeList = nullptr; // 跨度内存块的空闲链表
+	bool _isUse = false; // 标记该跨度是否正在被使用
 };
 
 // 带头双向循环链表
@@ -273,5 +297,5 @@ public:
 private:
 	SpanNode* _head = nullptr;
 public:
-	std::mutex _mutex; // 跨度链表的互斥锁
+	std::mutex _mutex; // 跨度链表SpanList的互斥锁（桶锁） 
 };
