@@ -2,10 +2,10 @@
 
 PageCache PageCache::_sinst; // 静态成员变量初始化
 
-SpanNode* PageCache::newSpan(size_t k) // 获取新的跨度节点，k为跨度大小
+SpanNode* PageCache::newSpan(size_t k) // 获取新的跨度（页数大小）节点，k为跨度大小
 {
 	assert(k > 0 && k <= MAX_PAGE); // 确保k在合法范围内
-	if( !_spanlist[k].Empty())
+	if( !_spanlist[k].Empty()) // 页数为k的节点数量为0
 		return _spanlist[k].PopFront(); // 如果跨度链表不为空，弹出头节点并返回
 	// 如果跨度链表为空，创建新的跨度节点
 	// 检测后面的页是否有空闲页可用
@@ -40,7 +40,7 @@ SpanNode* PageCache::newSpan(size_t k) // 获取新的跨度节点，k为跨度大小
 	void* ptr = SystemAlloc(MAX_PAGE - 1); // 分配128页的内存(每页2^13字节)
 	bigkSpan->_pageId = (ID_SIZE)ptr >> PAGE_SHIFT; // 设置新的跨度节点的起始页号
 	bigkSpan->_n = MAX_PAGE - 1; // 设置新的跨度节点的页数为PAGE_MAX
-	_spanlist[bigkSpan->_n - 1].PushFront(bigkSpan); // 将新的跨度节点插入到对应的跨度链表中
+	_spanlist[bigkSpan->_n].PushFront(bigkSpan); // 将新的跨度节点插入到对应的跨度链表中
 
 	return newSpan(k); // 递归调用获取k页的跨度节点
 }

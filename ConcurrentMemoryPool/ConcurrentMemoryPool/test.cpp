@@ -111,10 +111,10 @@ void MultiThreadAlloc2()
 void TestMultiThread()
 {
 	std::thread t1(MultiThreadAlloc1);
-	std::thread t2(MultiThreadAlloc2);
+	//std::thread t2(MultiThreadAlloc2);
 
 	t1.join();
-	t2.join();
+	//t2.join();
 }
 
 int main()
