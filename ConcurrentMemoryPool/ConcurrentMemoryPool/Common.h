@@ -44,6 +44,15 @@ inline static void* SystemAlloc(size_t kpage)
 		return ptr;
 }
 
+inline static void SystemFree(void* ptr)
+{
+#ifdef _WIN32
+	VirtualFree(ptr, 0, MEM_RELEASE);
+#else
+	// sbrk unmmap等
+#endif
+}
+
 //void*& NextObj(void* obj) // 获取obj的下一个指针
 // 获取obj的下一个指针,*&使调用者可以直接改写这个指针，而不是得到一份拷贝。
 //void*& NextObj(void* obj) // 获取obj的下一个指针
@@ -149,7 +158,8 @@ public:
 		}
 		else
 		{
-			assert(false);
+			/*assert(false);*/
+			return _RoundSize(size, 1 << PAGE_SHIFT); // 按页对齐
 			return -1;
 		}
 	}

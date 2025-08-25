@@ -117,6 +117,16 @@ void TestMultiThread()
 	//t2.join();
 }
 
+void BigAlloc()
+{
+	void* p1 = ConcurrentAlloc(257 * 1028); // 大于最大ThreadCacheSize
+	ConcurrentFree(p1, 257 * 1028);
+
+	void* p2 = ConcurrentAlloc(129 * 8 * 1028); // 大于最大PageCacheSize
+	ConcurrentFree(p2, 129 * 8 * 1028);
+	
+}
+
 int main()
 {
 	//TestObjectPool();
@@ -125,7 +135,8 @@ int main()
 	//TestConcurrentAlloc1();
 	//TestAddressShift();
 
-	TestMultiThread();
+	//TestMultiThread();
+	BigAlloc();
 
 	return 0;
 }
