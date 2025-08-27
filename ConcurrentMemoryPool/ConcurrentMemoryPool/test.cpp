@@ -1,4 +1,4 @@
-//#include "ObjectPool.h"
+//#include "MyObjectPool.h"
 #include "ConcurrentAlloc.h"
 
 void Alloc1()
@@ -27,7 +27,7 @@ void TLSTest()
 }
 
 
-void TestConcurrentAlloc1()
+void TestConcurrentAlloc1() // 单线程实验
 {
 	void* p1 = ConcurrentAlloc(6);
 	void* p2 = ConcurrentAlloc(8);
@@ -43,14 +43,16 @@ void TestConcurrentAlloc1()
 	cout << p3 << endl;
 	cout << p4 << endl;
 	cout << p5 << endl;
+	cout << p6 << endl;
+	cout << p7 << endl;
 
-	ConcurrentFree(p1, 6);
-	ConcurrentFree(p2, 8);
-	ConcurrentFree(p3, 1);
-	ConcurrentFree(p4, 7);
-	ConcurrentFree(p5, 8);
-	ConcurrentFree(p6, 8);
-	ConcurrentFree(p7, 8);
+	ConcurrentFree(p1);
+	ConcurrentFree(p2);
+	ConcurrentFree(p3);
+	ConcurrentFree(p4);
+	ConcurrentFree(p5);
+	ConcurrentFree(p6);
+	ConcurrentFree(p7);
 }
 
 void TestConcurrentAlloc2()
@@ -89,7 +91,7 @@ void MultiThreadAlloc1()
 
 	for (auto e : v)
 	{
-		ConcurrentFree(e, 6);
+		ConcurrentFree(e);
 	}
 }
 
@@ -104,26 +106,26 @@ void MultiThreadAlloc2()
 
 	for (auto e : v)
 	{
-		ConcurrentFree(e, 16);
+		ConcurrentFree(e);
 	}
 }
 
 void TestMultiThread()
 {
 	std::thread t1(MultiThreadAlloc1);
-	//std::thread t2(MultiThreadAlloc2);
+	std::thread t2(MultiThreadAlloc2);
 
 	t1.join();
-	//t2.join();
+	t2.join();
 }
 
 void BigAlloc()
 {
 	void* p1 = ConcurrentAlloc(257 * 1028); // 大于最大ThreadCacheSize
-	ConcurrentFree(p1, 257 * 1028);
+	ConcurrentFree(p1);
 
 	void* p2 = ConcurrentAlloc(129 * 8 * 1028); // 大于最大PageCacheSize
-	ConcurrentFree(p2, 129 * 8 * 1028);
+	ConcurrentFree(p2);
 	
 }
 
@@ -135,8 +137,8 @@ int main()
 	//TestConcurrentAlloc1();
 	//TestAddressShift();
 
-	//TestMultiThread();
-	BigAlloc();
+	TestMultiThread();
+	//BigAlloc();
 
 	return 0;
 }

@@ -21,6 +21,7 @@ SpanNode* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 	//SpanNode* Span = PageCache::GetInstance()->newSpan(byte_size); // 创建新的span
 	SpanNode* Span = PageCache::GetInstance()->newSpan(SizeClass::NumMovePage(byte_size)); // 创建新的span
 	Span->_isUse = true;
+	Span->_objsize = byte_size; // 设置span的对象大小
 	PageCache::GetInstance()->_pageMtx.unlock(); // 解锁PageCache的互斥锁
 
 

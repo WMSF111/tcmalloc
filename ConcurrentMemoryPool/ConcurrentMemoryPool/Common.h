@@ -22,6 +22,8 @@ static const size_t MAX_SIZE = 256 * 1024; //单位是byte, 最大的哈希桶下标  == 25
 static const size_t CACHENUM = 208; // 哈希桶数量
 static const size_t MAX_PAGE = 129; // 哈希桶数量
 static const size_t PAGE_SHIFT = 13;
+//int MEMORYNUM = 128 * 1024; // 内存池大小
+static const int MEMORYNUM = 128 * 1024; // 内存池大小 // static 整个项目只有这一个MEMORYNUM，避免多次定义问题
 
 #ifdef _WIN64
 	typedef unsigned long long ID_SIZE;
@@ -239,6 +241,7 @@ struct SpanNode // 跨度节点
 	SpanNode* _prev = nullptr; // 指向上一个跨度的指针
 
 	size_t n_count = 0; // 分配给threadcahe的对象数量
+	size_t _objsize = 0; // 跨度内存块中每个对象的大小
 	void* freeList = nullptr; // 跨度内存块的空闲链表
 	bool _isUse = false; // 标记该跨度是否正在被使用
 };
