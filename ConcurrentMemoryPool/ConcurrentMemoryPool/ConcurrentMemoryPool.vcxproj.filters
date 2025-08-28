@@ -30,6 +30,9 @@
     <ClCompile Include="PageCache.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="BrenchMark.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ConcurrentMemoryPool.rc">

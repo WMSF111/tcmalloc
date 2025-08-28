@@ -29,7 +29,7 @@ static void* ConcurrentAlloc(size_t size)// 获取size大小的pTLSThreadCache对象
 			//pTLSThreadCache = new ThreadCache;
 			pTLSThreadCache = _threadCachePool.New();
 		}
-		cout << std::this_thread::get_id() << ":" << pTLSThreadCache << endl;
+		//cout << std::this_thread::get_id() << ":" << pTLSThreadCache << endl;
 
 		return pTLSThreadCache->Allocate(size);
 	}

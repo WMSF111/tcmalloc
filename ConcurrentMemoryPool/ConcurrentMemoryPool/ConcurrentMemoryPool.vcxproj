@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BrenchMark.cpp" />
     <ClCompile Include="CentralCache.cpp" />
     <ClCompile Include="ConcurrentAlloc.h" />
     <ClCompile Include="PageCache.cpp" />
