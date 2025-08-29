@@ -36,13 +36,15 @@ SpanNode* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 	start += byte_size; // 更新start为下一个对象的地址
 	void* tail = Span->freeList; // tail指针，指向链表的起始地址
 	int i =	1;
-	while (start < end) // 当起始地址小于结束地址时，继续切分
+	while (start < end) // 当起始地址小于结束地址时，继续切分(尾插)
 	{
 		i++;
 		NextObj(tail) = start; // 将当前尾指针的下一个对象指针指向起始地址
 		tail = NextObj(tail); // 更新尾指针为下一个对象指针
 		start += byte_size; // 更新起始地址为下一个对象的地址
-	}
+	} // 此时：start == end == tail
+
+	NextObj(tail) = nullptr;
 
 	// 切好span以后，需要把span挂到桶里面去的时候，再加锁
 	list._mutex.lock(); // 锁定对应的哈希桶
@@ -58,7 +60,7 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	size_t index = SizeClass::IndexUp(size); // 获取哈希桶下标
 	_SpanList[index]._mutex.lock(); // 锁定对应的哈希桶
 	// 获取一个非空的span
-	SpanNode* span = GetOneSpan(_SpanList[index], size); // 获取_SpanList[index]中非空的span
+	SpanNode* span = GetOneSpan(_SpanList[index], size); // 获取_SpanList[index]中非空的span， Span已插入
 	assert(span && span->freeList); // 确保span不为空且有空闲链表
 	// 从span中的freeList链表中获取batchNum个对象
 	// 如果不够batchNum个，有多少拿多少
