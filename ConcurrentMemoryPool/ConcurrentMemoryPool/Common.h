@@ -28,7 +28,7 @@ static const int MEMORYNUM = 128 * 1024; // ÄÚ´æ³Ø´óĞ¡ // static Õû¸öÏîÄ¿Ö»ÓĞÕâÒ
 #ifdef _WIN64
 	typedef unsigned long long ID_SIZE;
 #elif _WIN32
-	typedef unsigned size_t ID_SIZE;
+	typedef size_t ID_SIZE;
 #endif
 
 // Ö±½ÓÈ¥¶ÑÉÏ°´Ò³ÉêÇë¿Õ¼ä

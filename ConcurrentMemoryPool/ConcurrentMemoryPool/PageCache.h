@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "MyObjectPool.h"
+#include "PageMap.h"
 //#include "ObjectPool.h"
 
 // PageCache类，用于管理内存页缓存
@@ -26,11 +27,12 @@ public:
 	
 private:
 	SpanList _spanlist[MAX_PAGE]; // 哈希桶数组，每个哈希桶对应一个SpanList，用于存储不同大小的内存页
+
+	//std::unordered_map<ID_SIZE, SpanNode*> _idSpanMap; // 对象到span的映射表，key为对象的页号，value为对应的span节点
+	TCMalloc_PageMap1<32 - PAGE_SHIFT> _idSpanMap; // 使用单级页映射表代替unordered_map
 	PageCache() {};
 	PageCache(const PageCache&) = delete; // 禁止拷贝构造
 	PageCache& operator=(const PageCache&) = delete; // 禁止赋值操作
-
-	std::unordered_map<ID_SIZE, SpanNode*> _idSpanMap; // 对象到span的映射表，key为对象的页号，value为对应的span节点
 	static PageCache _sinst; // 静态成员变量，存储单例实例
 
 	ObjectPool<SpanNode> _spanPool; // 用于管理Span节点的对象池
