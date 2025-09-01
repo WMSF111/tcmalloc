@@ -27,8 +27,10 @@ static const int MEMORYNUM = 128 * 1024; // ÄÚ´æ³Ø´óĞ¡ // static Õû¸öÏîÄ¿Ö»ÓĞÕâÒ
 
 #ifdef _WIN64
 	typedef unsigned long long ID_SIZE;
+	static const size_t WIN_SIZE = 64;
 #elif _WIN32
 	typedef size_t ID_SIZE;
+	static const size_t WIN_SIZE = 32;
 #endif
 
 // Ö±½ÓÈ¥¶ÑÉÏ°´Ò³ÉêÇë¿Õ¼ä
@@ -45,6 +47,7 @@ inline static void* SystemAlloc(size_t kpage)
 
 		return ptr;
 }
+
 
 inline static void SystemFree(void* ptr)
 {
@@ -92,7 +95,7 @@ public:
 		return _maxSize; // ·µ»ØÖ¸Õë´óĞ¡µÄÁ½±¶£¬×÷Îª×î´ó¿É·ÖÅä¶ÔÏó´óĞ¡
 	}
 
-	void PushRange(void* start, void* end, size_t size)
+	void PushRange(void* start, void* end, size_t size) //Í·²åstart-->end
 	{
 		assert(start && end);
 		NextObj(end) = _freelist; // ½«endµÄÏÂÒ»¸öÖ¸ÕëÖ¸Ïòµ±Ç°¿ÕÏĞÁ´±íµÄÍ·Ö¸Õë

@@ -35,16 +35,34 @@ SpanNode* CentralCache::GetOneSpan(SpanList& list, size_t byte_size)
 	Span->freeList = start; // 设置span的空闲链表头指针为起start址
 	start += byte_size; // 更新start为下一个对象的地址
 	void* tail = Span->freeList; // tail指针，指向链表的起始地址
-	int i =	1;
+	int flag = size / byte_size;
+	int i = 1;
 	while (start < end) // 当起始地址小于结束地址时，继续切分(尾插)
 	{
 		i++;
 		NextObj(tail) = start; // 将当前尾指针的下一个对象指针指向起始地址
 		tail = NextObj(tail); // 更新尾指针为下一个对象指针
 		start += byte_size; // 更新起始地址为下一个对象的地址
-	} // 此时：start == end == tail
+		if (start != (char*)(Span->_pageId << PAGE_SHIFT) + byte_size * i)
+			int x = 0;
+	} // 此时：start == end == tail->next
 
 	NextObj(tail) = nullptr;
+
+	//// 1、条件断点
+	//// 2、疑似死循环，可以中断程序，程序会在正在运行的地方停下来
+	//int j = 0;
+	//void* cur = Span->freeList;
+	//while (cur)
+	//{
+	//	cur = NextObj(cur);
+	//	++j;
+	//}
+
+	//if (j != (size / byte_size))
+	//{
+	//	int x = 0;
+	//}
 
 	// 切好span以后，需要把span挂到桶里面去的时候，再加锁
 	list._mutex.lock(); // 锁定对应的哈希桶

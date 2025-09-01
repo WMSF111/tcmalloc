@@ -11,6 +11,9 @@ public:
 	T* New()
 	{
 		T* obj = nullptr;
+		// 这里要修复一个bug，这里是需要加锁的，否则多线程使用
+		// 同一个对象池对象，存在bug
+		std::unique_lock<std::mutex> lock(_mtx);
 		if (_freelist)// 如果空闲链表不为空，头删空闲链表
 		{
 			void* next = *(void**)_freelist;
@@ -21,14 +24,16 @@ public:
 		{
 			if (_remainpool < sizeof(T)) // 如果内存池剩余空间不足，则重新分配POOLNUM大小的内存
 			{
-				_remainpool = MEMORYNUM; // 设置剩余空间大小
+				_remainpool = MEMORYNUM; // 设置剩余空间大小 1024 * 8
 				//_memory = (char*)malloc(POOLNUM);
 				_memory = (char*)SystemAlloc(_remainpool >> 13); // 分配POOLNUM >> 13 页的内存
+				memset(_memory, 0, _remainpool); // 初始化分配的内存，解决了OBJ的指向NULL的问题
 				if (_memory == nullptr)
 					throw std::bad_alloc();
 					/*throw std::bad_alloc;*/
 			}
 			obj = (T*)_memory;
+			//assert(obj != nullptr);
 			size_t objsize = sizeof(T) > sizeof(void*) ? sizeof(T) : sizeof(void*);
 			_memory += objsize;
 			_remainpool -= objsize;
@@ -40,6 +45,7 @@ public:
 
 	void Delete(T* obj) // 头插
 	{
+		std::unique_lock<std::mutex> lock(_mtx);
 		//~T;
 		obj->~T();
 		*(void**)obj = _freelist;
@@ -49,6 +55,7 @@ private:
 	char* _memory = nullptr;
 	size_t _remainpool = 0;
 	void* _freelist = nullptr;
+	std::mutex _mtx;
 };
 
 //struct TreeNode
