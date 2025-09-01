@@ -11,6 +11,7 @@
 
 static void* ConcurrentAlloc(size_t size)// 获取size大小的pTLSThreadCache对象
 {
+
 	if (size > MAX_SIZE) // 如果size大于MAX_SIZE，则直接向PageCache申请内存
 	{
 		size_t alignsize = SizeClass::RoundSize(size); // 计算对齐后的大小
